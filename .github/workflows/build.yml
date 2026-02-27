@@ -1,0 +1,40 @@
+name: Build Installer
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: py -m pip install --upgrade pip && py -m pip install requests beautifulsoup4 pyinstaller
+
+      - name: Build EXE
+        run: py -m PyInstaller --onefile --noconsole --name VeilleCasting veille_casting_app.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: VeilleCasting_Setup.exe
