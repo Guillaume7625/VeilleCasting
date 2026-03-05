@@ -33,8 +33,12 @@ jobs:
         shell: pwsh
         run: |
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
+          Write-Host "--- Fichiers generes ---"
+          Get-ChildItem -Recurse *.exe | ForEach-Object { Write-Host $_.FullName }
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: VeilleCasting_Setup.exe
+          files: |
+            VeilleCasting_Setup.exe
+            Output/VeilleCasting_Setup.exe
