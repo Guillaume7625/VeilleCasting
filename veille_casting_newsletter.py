@@ -70,15 +70,19 @@ def build_plain_text_body(annonces: list) -> str:
     high_priority = [item for item in annonces if item["priority"] == "HIGH"]
     if high_priority:
         for idx, annonce in enumerate(high_priority, start=1):
+            display_title = annonce.get("newsletter_title") or annonce["title"]
+            summary = annonce.get("ai_summary", "").strip()
             lines.extend(
                 [
-                    f"{idx}. {annonce['title']}",
+                    f"{idx}. {display_title}",
                     f"   Type: {annonce['item_type']} | Profil: {annonce['role_label']}",
                     f"   Lieu: {annonce['location']} | Dates: {annonce['dates']}",
                     f"   Source: {annonce['source']} ({annonce['source_type']}, fiabilité {annonce['source_reliability']}, région {annonce['region']})",
                     f"   Score: {annonce['score']} | Contact: {annonce['contact_method']} - {annonce['contact_value']}",
                 ]
             )
+            if summary:
+                lines.append(f"   Résumé IA: {summary}")
     else:
         lines.append("   Aucun casting hautement prioritaire.")
 
@@ -86,15 +90,19 @@ def build_plain_text_body(annonces: list) -> str:
     if standard:
         lines.extend(["", "STANDARD:"])
         for idx, annonce in enumerate(standard, start=1):
+            display_title = annonce.get("newsletter_title") or annonce["title"]
+            summary = annonce.get("ai_summary", "").strip()
             lines.extend(
                 [
-                    f"{idx}. {annonce['title']}",
+                    f"{idx}. {display_title}",
                     f"   Type: {annonce['item_type']} | Profil: {annonce['role_label']}",
                     f"   Lieu: {annonce['location']} | Dates: {annonce['dates']}",
                     f"   Source: {annonce['source']} ({annonce['source_type']}, fiabilité {annonce['source_reliability']}, région {annonce['region']})",
                     f"   Score: {annonce['score']} | Contact: {annonce['contact_method']} - {annonce['contact_value']}",
                 ]
             )
+            if summary:
+                lines.append(f"   Résumé IA: {summary}")
 
     return "\n".join(lines).strip()
 
@@ -111,7 +119,7 @@ def build_html_body(subject: str, annonces: list) -> str:
     def render_cards(items: list[dict]) -> str:
         cards = []
         for idx, annonce in enumerate(items, start=1):
-            title = escape(annonce["title"])
+            title = escape(annonce.get("newsletter_title") or annonce["title"])
             source = escape(annonce["source"])
             role = escape(annonce["role_label"])
             item_type = escape(annonce["item_type"])
@@ -125,6 +133,7 @@ def build_html_body(subject: str, annonces: list) -> str:
             source_reliability = escape(annonce["source_reliability"])
             region = escape(annonce["region"])
             score = escape(str(annonce["score"]))
+            ai_summary = escape(annonce.get("ai_summary", "").strip())
             country_line = f"<p><strong>Pays</strong> : {country}</p>" if country != "France" else ""
             if contact_method == "Lien d'application":
                 link_html = f'<a href="{contact_value}">{contact_method}</a>'
@@ -144,6 +153,7 @@ def build_html_body(subject: str, annonces: list) -> str:
                   <p><strong>Source</strong> : {source} ({source_type}, fiabilité {source_reliability}, région {region})</p>
                   <p><strong>Score</strong> : {score}</p>
                   <p><strong>Contact</strong> : {link_html}</p>
+                  {f'<p><strong>Résumé IA</strong> : {ai_summary}</p>' if ai_summary else ''}
                 </article>
                 """
             )

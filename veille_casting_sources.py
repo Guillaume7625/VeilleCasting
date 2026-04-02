@@ -20,6 +20,7 @@ from veille_casting_config import (
     norm,
     save_json,
 )
+from veille_casting_openai import openai_enabled, refine_candidate_with_openai
 
 SOURCE_METADATA = {
     "CastProd": {
@@ -514,6 +515,7 @@ def _classify_candidate(
     session,
     headers: dict,
     audit_file,
+    log=lambda msg: None,
 ) -> dict | None:
     title = annonce.get("title", "")
     description = annonce.get("description", "")
@@ -629,7 +631,7 @@ def _classify_candidate(
         )
         return None
 
-    score, score_reason = score_candidate(
+    base_score, score_reason = score_candidate(
         text=text,
         source_meta=source_meta,
         target_groups=target_groups,
@@ -639,6 +641,72 @@ def _classify_candidate(
         explicit_casting=explicit_casting,
     )
 
+    ai_refinement = None
+    if openai_enabled(cfg):
+        ai_refinement = refine_candidate_with_openai(
+            session,
+            cfg,
+            {
+                **annonce,
+                "classification": "CASTING_PROBABLE",
+                "priority": "STANDARD",
+                "item_type": item_type,
+                "role_label": "Casting général",
+                "target_groups": target_groups,
+                "location": location or source_meta.get("region", "PACA"),
+                "dates": dates or "Non précisées",
+                "contact_method": contact_method,
+                "contact_value": contact_value,
+                "score": base_score,
+            },
+            log,
+        )
+
+    ai_used = bool(ai_refinement)
+    ai_score = base_score
+    ai_confidence = 0
+    ai_summary = ""
+    ai_model = ""
+    newsletter_title = title
+    if ai_refinement:
+        if not ai_refinement.get("keep", True) and ai_refinement.get("confidence", 0) >= 60:
+            audit_decision(
+                audit_file,
+                keep_or_reject="reject",
+                source_type=source_meta.get("type", "source inconnue"),
+                source_name=source,
+                source_url=link,
+                collected_at=collected_at,
+                raw_excerpt=raw_excerpt,
+                paca_signal_detected=bool(location or source_meta.get("region") == "PACA"),
+                contact_detected=True,
+                relevance_score=base_score,
+                reject_reason="openai_rejected",
+                extra={
+                    "ai_used": True,
+                    "ai_model": ai_refinement.get("model", ""),
+                    "ai_confidence": ai_refinement.get("confidence", 0),
+                    "ai_score": ai_refinement.get("ai_score", base_score),
+                    "ai_reason": ai_refinement.get("reason", ""),
+                },
+            )
+            return None
+
+        target_groups = ai_refinement.get("target_groups", target_groups) or target_groups
+        location = ai_refinement.get("location", location) or location
+        dates = ai_refinement.get("dates", dates) or dates
+        contact_method = ai_refinement.get("contact_method", contact_method) or contact_method
+        contact_value = ai_refinement.get("contact_value", contact_value) or contact_value
+        item_type = ai_refinement.get("item_type", item_type) or item_type
+        newsletter_title = ai_refinement.get("newsletter_title", title) or title
+        ai_summary = ai_refinement.get("summary", "") or ""
+        ai_score = ai_refinement.get("ai_score", base_score)
+        ai_confidence = ai_refinement.get("confidence", 0)
+        ai_model = ai_refinement.get("model", "")
+
+    score = round((base_score * 0.65) + (ai_score * 0.35)) if ai_used else base_score
+    score_reason = f"{score_reason}; ai_score:{ai_score}; ai_confidence:{ai_confidence}" if ai_used else score_reason
+
     if source_meta.get("type") == "social public":
         classification = "CASTING_PROBABLE"
     elif score >= 85 or (source == "Figurants PACA" and (explicit_casting or target_groups)):
@@ -647,6 +715,8 @@ def _classify_candidate(
         classification = "CASTING_PROBABLE"
 
     priority = "HIGH" if score >= 80 or target_groups or item_type in {"mannequin / modele", "pub / campagne", "shooting / campagne"} else "STANDARD"
+    if ai_refinement and ai_refinement.get("priority") == "HIGH":
+        priority = "HIGH"
     role_label = "Casting général"
     if "model_senior" in target_groups:
         role_label = "Mannequin / modèle 40+ senior"
@@ -660,6 +730,8 @@ def _classify_candidate(
         role_label = "Shooting / campagne"
     elif item_type == "figuration":
         role_label = "Figurants / silhouettes"
+    if ai_refinement:
+        role_label = ai_refinement.get("role_label", role_label) or role_label
 
     reason_parts = [
         f"source={source}",
@@ -671,6 +743,9 @@ def _classify_candidate(
         reason_parts.append(f"location={location}")
     if target_groups:
         reason_parts.append(f"target_groups={','.join(target_groups)}")
+    if ai_used:
+        reason_parts.append(f"ai_model={ai_model or 'unknown'}")
+        reason_parts.append(f"ai_confidence={ai_confidence}")
 
     result = {
         **annonce,
@@ -692,6 +767,12 @@ def _classify_candidate(
         "dates": dates or "Non précisées",
         "contact_method": contact_method,
         "contact_value": contact_value,
+        "newsletter_title": newsletter_title,
+        "ai_used": ai_used,
+        "ai_model": ai_model,
+        "ai_confidence": ai_confidence,
+        "ai_score": ai_score,
+        "ai_summary": ai_summary,
     }
     audit_decision(
         audit_file,
@@ -708,15 +789,20 @@ def _classify_candidate(
             "classification": classification,
             "priority": priority,
             "reason": result["classification_reason"],
+            "ai_used": ai_used,
+            "ai_model": ai_model,
+            "ai_confidence": ai_confidence,
+            "ai_score": ai_score,
+            "ai_summary": ai_summary,
         },
     )
     return result
 
 
-def prepare_newsletter_items(annonces: list[dict], cfg: dict, session, headers: dict, audit_file) -> list[dict]:
+def prepare_newsletter_items(annonces: list[dict], cfg: dict, session, headers: dict, audit_file, log=lambda msg: None) -> list[dict]:
     prepared: list[dict] = []
     for annonce in annonces:
-        item = _classify_candidate(annonce, cfg, session, headers, audit_file)
+        item = _classify_candidate(annonce, cfg, session, headers, audit_file, log)
         if item:
             prepared.append(item)
     priority_order = {"HIGH": 0, "STANDARD": 1}

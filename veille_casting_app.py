@@ -55,6 +55,8 @@ def run_once() -> None:
         else:
             log("Config non remplie. Lancez --init pour configurer.")
         return
+    if cfg.get("openai_api_key"):
+        log(f"IA OpenAI activee avec le modele {cfg.get('openai_model', 'gpt-5.1-mini')}.")
 
     all_annonces = []
     sources = cfg.get("sources", {})
@@ -69,7 +71,7 @@ def run_once() -> None:
         log(f"Collecte sociale publique: {len(social_items)} item(s) brut(s).")
 
     log(f"Total brut: {len(all_annonces)} annonce(s).")
-    relevant = prepare_newsletter_items(all_annonces, cfg, SESSION, HEADERS, AUDIT_FILE)
+    relevant = prepare_newsletter_items(all_annonces, cfg, SESSION, HEADERS, AUDIT_FILE, log)
     confirmed = sum(1 for item in relevant if item["classification"] == "CASTING_CONFIRMED")
     probable = sum(1 for item in relevant if item["classification"] == "CASTING_PROBABLE")
     model_senior = sum(1 for item in relevant if "model_senior" in item.get("target_groups", []))

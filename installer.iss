@@ -47,6 +47,7 @@ Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; \
 var
   ApiKeyPage: TInputQueryWizardPage;
   SenderPage: TInputQueryWizardPage;
+  OpenAIPage: TInputQueryWizardPage;
 
 function IsNonEmpty(S: String): Boolean;
 var
@@ -68,6 +69,14 @@ begin
     'Exemple : piccinno@hotmail.com');
   SenderPage.Add('Adresse expediteur :', False);
   SenderPage.Values[0] := 'piccinno@hotmail.com';
+
+  OpenAIPage := CreateInputQueryPage(SenderPage.ID,
+    'IA OpenAI (optionnel)', 'Amelioration IA des annonces',
+    'Laissez vide pour fonctionner sans IA.');
+  OpenAIPage.Add('Cle API OpenAI :', False);
+  OpenAIPage.Add('Modele OpenAI :', False);
+  OpenAIPage.Values[0] := '';
+  OpenAIPage.Values[1] := 'gpt-5.1-mini';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -89,12 +98,17 @@ begin
       Result := False;
     end;
   end;
+  if CurPageID = OpenAIPage.ID then
+  begin
+    if not IsNonEmpty(OpenAIPage.Values[0]) then
+      OpenAIPage.Values[1] := 'gpt-5.1-mini';
+  end;
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
-  if (PageID = ApiKeyPage.ID) or (PageID = SenderPage.ID) then
+  if (PageID = ApiKeyPage.ID) or (PageID = SenderPage.ID) or (PageID = OpenAIPage.ID) then
   begin
     if FileExists(ExpandConstant('{userappdata}\VeilleCasting\config.json')) then
       Result := True;
@@ -113,6 +127,8 @@ var
   Dir, FilePath: String;
   Lines: TArrayOfString;
   CleanSender: String;
+  CleanOpenAIKey: String;
+  CleanOpenAIModel: String;
 begin
   Dir := ExpandConstant('{userappdata}\VeilleCasting');
   ForceDirectories(Dir);
@@ -120,60 +136,64 @@ begin
   if FileExists(FilePath) then
     Exit;
   CleanSender := Trim(SenderPage.Values[0]);
-  SetArrayLength(Lines, 53);
+  CleanOpenAIKey := Trim(OpenAIPage.Values[0]);
+  CleanOpenAIModel := Trim(OpenAIPage.Values[1]);
+  SetArrayLength(Lines, 55);
   Lines[0]  := '{';
   Lines[1]  := '  "resend_api_key": "' + JsonEscape(ApiKeyPage.Values[0]) + '",';
   Lines[2]  := '  "sender_email": "' + JsonEscape(CleanSender) + '",';
   Lines[3]  := '  "recipient_email": "piccinno@hotmail.com",';
-  Lines[4]  := '  "zones_ok": [';
-  Lines[5]  := '    "paca","provence","alpes","cote d''azur","bouches-du-rhone",';
-  Lines[6]  := '    "var","vaucluse","alpes-maritimes","nice","marseille",';
-  Lines[7]  := '    "toulon","avignon","cannes","aix-en-provence",';
-  Lines[8]  := '    "frejus","menton","antibes","grasse","draguignan",';
-  Lines[9]  := '    "istres","martigues","gap","manosque",';
-  Lines[10] := '    "toute la france","france entiere","national"';
-  Lines[11] := '  ],';
-  Lines[12] := '  "category_keywords": [';
-  Lines[13] := '    "figuration","figurant","figurante","casting","acteur",';
-  Lines[14] := '    "actrice","comedien","comedienne","doublure","silhouette",';
-  Lines[15] := '    "role muet","extra","film","serie","television","tv",';
-  Lines[16] := '    "court-metrage","long-metrage","publicite","pub","clip",';
-  Lines[17] := '    "clip video","theatre","spectacle","shooting",';
-  Lines[18] := '    "campagne","marque","catalogue","e-commerce","commerce",';
-  Lines[19] := '    "lookbook","mode"';
-  Lines[20] := '  ],';
-  Lines[21] := '  "exclude_keywords": [';
-  Lines[22] := '    "animateur","animatrice","voix off","voice over",';
-  Lines[23] := '    "danse","danseur","danseuse","chant","chanteur","chanteuse",';
-  Lines[24] := '    "humour","stand up","podcast"';
-  Lines[25] := '  ],';
-  Lines[26] := '  "sources": {';
-  Lines[27] := '    "castprod": true,';
-  Lines[28] := '    "figurants_paca": true';
-  Lines[29] := '  },';
-  Lines[30] := '  "social_sources": {';
-  Lines[31] := '    "facebook_public": {';
-  Lines[32] := '      "enabled": true,';
-  Lines[33] := '      "urls": [';
-  Lines[34] := '        "https://www.facebook.com/groups/castingmarseille/",';
-  Lines[35] := '        "https://www.facebook.com/groups/castingfigurantspaca/",';
-  Lines[36] := '        "https://www.facebook.com/groups/figurantssud/"';
-  Lines[37] := '      ]';
-  Lines[38] := '    },';
-  Lines[39] := '    "instagram_public": {';
-  Lines[40] := '      "enabled": true,';
-  Lines[41] := '      "hashtags": [';
-  Lines[42] := '        "castingpaca",';
-  Lines[43] := '        "castingmarseille",';
-  Lines[44] := '        "figurantpaca",';
-  Lines[45] := '        "modelepaca",';
-  Lines[46] := '        "mannequinpaca",';
-  Lines[47] := '        "seniormodele"';
-  Lines[48] := '      ]';
-  Lines[49] := '    }';
-  Lines[50] := '  },';
-  Lines[51] := '  "sleep_between_requests_seconds": 0.7';
-  Lines[52] := '}';
+  Lines[4]  := '  "openai_api_key": "' + JsonEscape(CleanOpenAIKey) + '",';
+  Lines[5]  := '  "openai_model": "' + JsonEscape(CleanOpenAIModel) + '",';
+  Lines[6]  := '  "zones_ok": [';
+  Lines[7]  := '    "paca","provence","alpes","cote d''azur","bouches-du-rhone",';
+  Lines[8]  := '    "var","vaucluse","alpes-maritimes","nice","marseille",';
+  Lines[9]  := '    "toulon","avignon","cannes","aix-en-provence",';
+  Lines[10] := '    "frejus","menton","antibes","grasse","draguignan",';
+  Lines[11] := '    "istres","martigues","gap","manosque",';
+  Lines[12] := '    "toute la france","france entiere","national"';
+  Lines[13] := '  ],';
+  Lines[14] := '  "category_keywords": [';
+  Lines[15] := '    "figuration","figurant","figurante","casting","acteur",';
+  Lines[16] := '    "actrice","comedien","comedienne","doublure","silhouette",';
+  Lines[17] := '    "role muet","extra","film","serie","television","tv",';
+  Lines[18] := '    "court-metrage","long-metrage","publicite","pub","clip",';
+  Lines[19] := '    "clip video","theatre","spectacle","shooting",';
+  Lines[20] := '    "campagne","marque","catalogue","e-commerce","commerce",';
+  Lines[21] := '    "lookbook","mode"';
+  Lines[22] := '  ],';
+  Lines[23] := '  "exclude_keywords": [';
+  Lines[24] := '    "animateur","animatrice","voix off","voice over",';
+  Lines[25] := '    "danse","danseur","danseuse","chant","chanteur","chanteuse",';
+  Lines[26] := '    "humour","stand up","podcast"';
+  Lines[27] := '  ],';
+  Lines[28] := '  "sources": {';
+  Lines[29] := '    "castprod": true,';
+  Lines[30] := '    "figurants_paca": true';
+  Lines[31] := '  },';
+  Lines[32] := '  "social_sources": {';
+  Lines[33] := '    "facebook_public": {';
+  Lines[34] := '      "enabled": true,';
+  Lines[35] := '      "urls": [';
+  Lines[36] := '        "https://www.facebook.com/groups/castingmarseille/",';
+  Lines[37] := '        "https://www.facebook.com/groups/castingfigurantspaca/",';
+  Lines[38] := '        "https://www.facebook.com/groups/figurantssud/"';
+  Lines[39] := '      ]';
+  Lines[40] := '    },';
+  Lines[41] := '    "instagram_public": {';
+  Lines[42] := '      "enabled": true,';
+  Lines[43] := '      "hashtags": [';
+  Lines[44] := '        "castingpaca",';
+  Lines[45] := '        "castingmarseille",';
+  Lines[46] := '        "figurantpaca",';
+  Lines[47] := '        "modelepaca",';
+  Lines[48] := '        "mannequinpaca",';
+  Lines[49] := '        "seniormodele"';
+  Lines[50] := '      ]';
+  Lines[51] := '    }';
+  Lines[52] := '  },';
+  Lines[53] := '  "sleep_between_requests_seconds": 0.7';
+  Lines[54] := '}';
   SaveStringsToUTF8File(FilePath, Lines, False);
 end;
 
