@@ -17,14 +17,14 @@ Les alertes sont envoyées via l'API e-mail [Resend](https://resend.com/emails) 
 2. Double-cliquez dessus. Si Windows affiche « Windows a protégé votre ordinateur », cliquez **Informations complémentaires** puis **Exécuter quand même**.
 3. Suivez l'assistant. Il vous demandera :
    - Votre **clé API Resend**.
-   - Votre **adresse d'expédition Resend** (par exemple `VeilleCasting <newsletter@votre-domaine.fr>`).
+   - Votre **adresse d'expédition Resend**. Pour ce projet, l'adresse validée utilisée par défaut est `piccinno@hotmail.com`.
 4. Cliquez « Installer », puis « Terminer ».
 
 ## Préparer Resend
 
 1. Créez une clé API : <https://resend.com/api-keys>
 2. Vérifiez l'adresse ou le domaine d'expédition dans votre compte Resend.
-3. Utilisez une adresse `from` autorisée par Resend dans la configuration.
+3. Utilisez `piccinno@hotmail.com` ou une autre adresse `from` autorisée par Resend dans la configuration.
 
 ## Vérifier
 

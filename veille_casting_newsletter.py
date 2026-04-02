@@ -9,7 +9,7 @@ from html import escape
 
 
 def send_email(session, cfg: dict, annonces: list, log) -> bool:
-    subject = f"VeilleCasting – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    subject = "[CastINT PACA] digest — homme 40-60"
     text_body = build_plain_text_body(annonces)
     html_body = build_html_body(subject, annonces)
     payload = {

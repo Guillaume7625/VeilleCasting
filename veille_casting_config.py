@@ -15,10 +15,11 @@ CONFIG_FILE = APP_DIR / "config.json"
 LOG_FILE = APP_DIR / "veille.log"
 SEEN_FILE = APP_DIR / "seen_hashes.json"
 AUDIT_FILE = APP_DIR / "audit.jsonl"
+DEFAULT_SENDER_EMAIL = "piccinno@hotmail.com"
 
 DEFAULT_CONFIG = {
     "resend_api_key": "VOTRE_CLE_API_RESEND",
-    "sender_email": "VeilleCasting <newsletter@votre-domaine.fr>",
+    "sender_email": DEFAULT_SENDER_EMAIL,
     "recipient_email": "piccinno@hotmail.com",
     "zones_ok": [
         "paca",
@@ -171,6 +172,9 @@ def load_config() -> dict:
         cfg = DEFAULT_CONFIG.copy()
     if "social_sources" not in cfg:
         cfg["social_sources"] = DEFAULT_CONFIG["social_sources"]
+    sender_email = str(cfg.get("sender_email", "")).strip()
+    if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email:
+        cfg["sender_email"] = DEFAULT_SENDER_EMAIL
     if "sender_password" in cfg and "resend_api_key" not in cfg:
         cfg["_legacy_gmail_config"] = True
     cfg["_exclude_norm"] = [norm(x) for x in cfg.get("exclude_keywords", [])]
@@ -182,5 +186,5 @@ def load_config() -> dict:
 def config_is_filled(cfg: dict) -> bool:
     return (
         cfg.get("resend_api_key", "") not in ("", DEFAULT_CONFIG["resend_api_key"])
-        and cfg.get("sender_email", "") not in ("", DEFAULT_CONFIG["sender_email"])
+        and str(cfg.get("sender_email", "")).strip() != ""
     )

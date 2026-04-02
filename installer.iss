@@ -65,8 +65,9 @@ begin
 
   SenderPage := CreateInputQueryPage(ApiKeyPage.ID,
     'Adresse d expediteur', 'Entrez l adresse d expediteur Resend',
-    'Exemple : VeilleCasting <newsletter@votre-domaine.fr>');
+    'Exemple : piccinno@hotmail.com');
   SenderPage.Add('Adresse expediteur :', False);
+  SenderPage.Values[0] := 'piccinno@hotmail.com';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
