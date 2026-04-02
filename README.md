@@ -33,6 +33,16 @@ Les alertes sont envoyées via l'API e-mail [Resend](https://resend.com/emails) 
 1. Créez une clé API OpenAI si vous voulez activer le raffinement par IA.
 2. Laissez le champ OpenAI vide si vous préférez fonctionner uniquement avec les règles et le scoring local.
 3. Le modèle par défaut recommandé est `gpt-5.1-mini`, mais vous pouvez le changer dans la configuration.
+4. Si vous préférez ne rien saisir dans l'installateur, vous pouvez aussi définir `OPENAI_API_KEY` et `OPENAI_MODEL` dans l'environnement Windows du compte qui exécute la tâche.
+
+## Mode quasi automatique
+
+Si vous voulez vraiment minimiser la saisie:
+
+1. Laissez le projet utiliser `piccinno@hotmail.com` comme expéditeur par défaut.
+2. Renseignez uniquement la clé Resend une fois dans l'installateur, ou fournissez `RESEND_API_KEY` dans l'environnement.
+3. Si vous voulez l'IA, fournissez `OPENAI_API_KEY` dans l'environnement ou collez-la une seule fois dans l'installateur.
+4. Le reste est automatique: tâches planifiées, heures d'envoi, filtrage PACA, newsletter et envoi Resend.
 
 ## Vérifier
 

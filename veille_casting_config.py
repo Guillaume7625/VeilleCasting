@@ -178,12 +178,22 @@ def load_config() -> dict:
     if "openai_api_key" not in cfg:
         cfg["openai_api_key"] = ""
     if "openai_model" not in cfg or not str(cfg.get("openai_model", "")).strip():
-        cfg["openai_model"] = DEFAULT_OPENAI_MODEL
+        cfg["openai_model"] = os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL).strip() or DEFAULT_OPENAI_MODEL
     openai_api_key = str(cfg.get("openai_api_key", "")).strip()
     if not openai_api_key:
         env_openai_api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if env_openai_api_key:
             cfg["openai_api_key"] = env_openai_api_key
+    resend_api_key = str(cfg.get("resend_api_key", "")).strip()
+    if not resend_api_key or resend_api_key == DEFAULT_CONFIG["resend_api_key"]:
+        env_resend_api_key = os.environ.get("RESEND_API_KEY", "").strip()
+        if env_resend_api_key:
+            cfg["resend_api_key"] = env_resend_api_key
+    sender_email = str(cfg.get("sender_email", "")).strip()
+    if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email:
+        env_sender_email = os.environ.get("RESEND_SENDER_EMAIL", "").strip()
+        if env_sender_email:
+            cfg["sender_email"] = env_sender_email
     sender_email = str(cfg.get("sender_email", "")).strip()
     if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email:
         cfg["sender_email"] = DEFAULT_SENDER_EMAIL
@@ -197,6 +207,6 @@ def load_config() -> dict:
 
 def config_is_filled(cfg: dict) -> bool:
     return (
-        cfg.get("resend_api_key", "") not in ("", DEFAULT_CONFIG["resend_api_key"])
+        str(cfg.get("resend_api_key", "")).strip() not in ("", DEFAULT_CONFIG["resend_api_key"])
         and str(cfg.get("sender_email", "")).strip() != ""
     )
