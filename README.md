@@ -1,7 +1,11 @@
 # VeilleCasting
 
-Surveillance automatique des annonces de casting (PACA / Occitanie).
-Les alertes sont envoyées par e-mail à `piccinno@hotmail.com` deux fois par jour (9 h et 16 h).
+Surveillance automatique des annonces de casting et de mannequins/modèles, strictement limitée à la région PACA.
+Le filtre est strict: uniquement des opportunités de casting actionnables, avec contact exploitable, sans actualités généralistes.
+Les profils hommes 40-60 et mannequins/modèles 40+ / senior sont inclus en priorité.
+Les sources hors PACA sont ignorées.
+La phase 2 ajoute des collecteurs sociaux publics PACA (Facebook / Instagram) uniquement quand leurs pages publiques sont lisibles sans contournement de connexion. Si une source est verrouillée, elle est marquée `unsupported` et la veille continue.
+Les alertes sont envoyées via l'API e-mail [Resend](https://resend.com/emails) deux fois par jour (9 h et 16 h).
 
 ## Télécharger
 
@@ -12,16 +16,15 @@ Les alertes sont envoyées par e-mail à `piccinno@hotmail.com` deux fois par jo
 1. Téléchargez le fichier ci-dessus.
 2. Double-cliquez dessus. Si Windows affiche « Windows a protégé votre ordinateur », cliquez **Informations complémentaires** puis **Exécuter quand même**.
 3. Suivez l'assistant. Il vous demandera :
-   - Votre **adresse Gmail** (celle qui enverra les alertes).
-   - Votre **mot de passe d'application Gmail** (16 caractères, sans espaces).
+   - Votre **clé API Resend**.
+   - Votre **adresse d'expédition Resend** (par exemple `VeilleCasting <newsletter@votre-domaine.fr>`).
 4. Cliquez « Installer », puis « Terminer ».
 
-## Obtenir le mot de passe d'application Gmail
+## Préparer Resend
 
-1. Activez la validation en deux étapes : <https://myaccount.google.com/signinoptions/two-step-verification>
-2. Créez un mot de passe d'application : <https://myaccount.google.com/apppasswords>
-   - Nom : `VeilleCasting`
-   - Copiez le code de 16 caractères affiché.
+1. Créez une clé API : <https://resend.com/api-keys>
+2. Vérifiez l'adresse ou le domaine d'expédition dans votre compte Resend.
+3. Utilisez une adresse `from` autorisée par Resend dans la configuration.
 
 ## Vérifier
 
@@ -32,10 +35,9 @@ Les alertes sont envoyées par e-mail à `piccinno@hotmail.com` deux fois par jo
 
 ## Sécurité
 
-Le mot de passe d'application Gmail est stocké dans `%APPDATA%\VeilleCasting\config.json`.
-Toute personne ayant accès à votre session Windows peut le lire.
-Ce mot de passe ne donne accès qu'à l'envoi d'e-mails (pas à votre compte Gmail complet).
-Vous pouvez le révoquer à tout moment sur <https://myaccount.google.com/apppasswords>.
+La clé API Resend est stockée dans `%APPDATA%\VeilleCasting\config.json`.
+Toute personne ayant accès à votre session Windows peut la lire.
+Révoquez la clé à tout moment depuis le tableau de bord Resend.
 
 Installez l'application depuis le compte Windows qui l'utilisera au quotidien.
 

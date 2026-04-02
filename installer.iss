@@ -4,7 +4,7 @@
 #define MyTaskName     "VeilleCasting_2xJour"
 
 [Setup]
-AppId={{E8B3F5A1-9C2D-4B7E-A1F0-6D8E9C3B5A2D}
+AppId={{E8B3F5A1-9C2D-4B7E-A1F0-6D8E9C3B5A2D}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 DefaultDirName={autopf}\VeilleCasting
@@ -45,59 +45,46 @@ Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; \
 
 [Code]
 var
-  GmailPage: TInputQueryWizardPage;
-  PasswordPage: TInputQueryWizardPage;
+  ApiKeyPage: TInputQueryWizardPage;
+  SenderPage: TInputQueryWizardPage;
 
-function IsGmail(S: String): Boolean;
+function IsNonEmpty(S: String): Boolean;
 var
   L: String;
 begin
-  L := Lowercase(S);
-  Result := (Pos('@gmail.com', L) > 0) or (Pos('@googlemail.com', L) > 0);
-end;
-
-function StripSpaces(S: String): String;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 1 to Length(S) do
-    if S[I] <> ' ' then
-      Result := Result + S[I];
+  L := Trim(S);
+  Result := Length(L) > 0;
 end;
 
 procedure InitializeWizard();
 begin
-  GmailPage := CreateInputQueryPage(wpSelectDir,
-    'Adresse Gmail', 'Entrez votre adresse Gmail (expediteur)',
-    'Cette adresse servira a envoyer les alertes casting.');
-  GmailPage.Add('Adresse Gmail :', False);
+  ApiKeyPage := CreateInputQueryPage(wpSelectDir,
+    'Cle API Resend', 'Entrez votre cle API Resend',
+    'Créez-la sur https://resend.com/api-keys');
+  ApiKeyPage.Add('Cle API Resend :', True);
 
-  PasswordPage := CreateInputQueryPage(GmailPage.ID,
-    'Mot de passe application', 'Entrez le mot de passe application Gmail (16 caracteres)',
-    'Creez-le sur https://myaccount.google.com/apppasswords');
-  PasswordPage.Add('Mot de passe :', True);
+  SenderPage := CreateInputQueryPage(ApiKeyPage.ID,
+    'Adresse d expediteur', 'Entrez l adresse d expediteur Resend',
+    'Exemple : VeilleCasting <newsletter@votre-domaine.fr>');
+  SenderPage.Add('Adresse expediteur :', False);
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
-var
-  Clean: String;
 begin
   Result := True;
-  if CurPageID = GmailPage.ID then
+  if CurPageID = ApiKeyPage.ID then
   begin
-    if not IsGmail(GmailPage.Values[0]) then
+    if not IsNonEmpty(ApiKeyPage.Values[0]) then
     begin
-      MsgBox('Entrez une adresse @gmail.com ou @googlemail.com valide.', mbError, MB_OK);
+      MsgBox('Entrez une cle API Resend valide.', mbError, MB_OK);
       Result := False;
     end;
   end;
-  if CurPageID = PasswordPage.ID then
+  if CurPageID = SenderPage.ID then
   begin
-    Clean := StripSpaces(PasswordPage.Values[0]);
-    if Length(Clean) <> 16 then
+    if not IsNonEmpty(SenderPage.Values[0]) then
     begin
-      MsgBox('Le mot de passe application doit faire 16 caracteres (sans espaces).', mbError, MB_OK);
+      MsgBox('Entrez une adresse d expediteur valide.', mbError, MB_OK);
       Result := False;
     end;
   end;
@@ -106,7 +93,7 @@ end;
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
-  if (PageID = GmailPage.ID) or (PageID = PasswordPage.ID) then
+  if (PageID = ApiKeyPage.ID) or (PageID = SenderPage.ID) then
   begin
     if FileExists(ExpandConstant('{userappdata}\VeilleCasting\config.json')) then
       Result := True;
@@ -124,53 +111,68 @@ procedure WriteConfigJson();
 var
   Dir, FilePath: String;
   Lines: TArrayOfString;
-  CleanPwd: String;
+  CleanSender: String;
 begin
   Dir := ExpandConstant('{userappdata}\VeilleCasting');
   ForceDirectories(Dir);
   FilePath := Dir + '\config.json';
   if FileExists(FilePath) then
     Exit;
-  CleanPwd := StripSpaces(PasswordPage.Values[0]);
-  SetArrayLength(Lines, 39);
+  CleanSender := Trim(SenderPage.Values[0]);
+  SetArrayLength(Lines, 53);
   Lines[0]  := '{';
-  Lines[1]  := '  "sender_email": "' + JsonEscape(GmailPage.Values[0]) + '",';
-  Lines[2]  := '  "sender_password": "' + JsonEscape(CleanPwd) + '",';
-  Lines[3]  := '  "smtp_server": "smtp.gmail.com",';
-  Lines[4]  := '  "smtp_port": 587,';
-  Lines[5]  := '  "recipient_email": "piccinno@hotmail.com",';
-  Lines[6]  := '  "zones_ok": [';
-  Lines[7]  := '    "paca","provence","alpes","cote d''azur","bouches-du-rhone",';
-  Lines[8]  := '    "var","vaucluse","alpes-maritimes","nice","marseille",';
-  Lines[9]  := '    "toulon","avignon","cannes","aix-en-provence",';
-  Lines[10] := '    "occitanie","montpellier","toulouse","nimes","perpignan",';
-  Lines[11] := '    "beziers","herault","gard","aude","pyrenees-orientales",';
-  Lines[12] := '    "haute-garonne","tarn","ariege","lot","aveyron","gers",';
-  Lines[13] := '    "tarn-et-garonne","hautes-pyrenees","lozere",';
-  Lines[14] := '    "toute la france","france entiere","national"';
-  Lines[15] := '  ],';
-  Lines[16] := '  "category_keywords": [';
-  Lines[17] := '    "figuration","figurant","figurante","casting","acteur",';
-  Lines[18] := '    "actrice","comedien","comedienne","doublure","silhouette",';
-  Lines[19] := '    "role muet","extra","film","serie","television","tv",';
-  Lines[20] := '    "court-metrage","long-metrage","publicite","pub","clip",';
-  Lines[21] := '    "clip video","theatre","spectacle"';
-  Lines[22] := '  ],';
-  Lines[23] := '  "exclude_keywords": [';
-  Lines[24] := '    "mannequin","model","modele","photo","photographe",';
-  Lines[25] := '    "animateur","animatrice","voix off","voice over",';
-  Lines[26] := '    "danse","danseur","danseuse","chant","chanteur","chanteuse"';
-  Lines[27] := '  ],';
-  Lines[28] := '  "sources": {';
-  Lines[29] := '    "castprod": true,';
-  Lines[30] := '    "figurants_paca": true,';
-  Lines[31] := '    "figurants_occitanie": true,';
-  Lines[32] := '    "occitanie_films": true';
-  Lines[33] := '  },';
-  Lines[34] := '  "sleep_between_requests_seconds": 0.7';
-  Lines[35] := '}';
-  { trim array }
-  SetArrayLength(Lines, 36);
+  Lines[1]  := '  "resend_api_key": "' + JsonEscape(ApiKeyPage.Values[0]) + '",';
+  Lines[2]  := '  "sender_email": "' + JsonEscape(CleanSender) + '",';
+  Lines[3]  := '  "recipient_email": "piccinno@hotmail.com",';
+  Lines[4]  := '  "zones_ok": [';
+  Lines[5]  := '    "paca","provence","alpes","cote d''azur","bouches-du-rhone",';
+  Lines[6]  := '    "var","vaucluse","alpes-maritimes","nice","marseille",';
+  Lines[7]  := '    "toulon","avignon","cannes","aix-en-provence",';
+  Lines[8]  := '    "frejus","menton","antibes","grasse","draguignan",';
+  Lines[9]  := '    "istres","martigues","gap","manosque",';
+  Lines[10] := '    "toute la france","france entiere","national"';
+  Lines[11] := '  ],';
+  Lines[12] := '  "category_keywords": [';
+  Lines[13] := '    "figuration","figurant","figurante","casting","acteur",';
+  Lines[14] := '    "actrice","comedien","comedienne","doublure","silhouette",';
+  Lines[15] := '    "role muet","extra","film","serie","television","tv",';
+  Lines[16] := '    "court-metrage","long-metrage","publicite","pub","clip",';
+  Lines[17] := '    "clip video","theatre","spectacle","shooting",';
+  Lines[18] := '    "campagne","marque","catalogue","e-commerce","commerce",';
+  Lines[19] := '    "lookbook","mode"';
+  Lines[20] := '  ],';
+  Lines[21] := '  "exclude_keywords": [';
+  Lines[22] := '    "animateur","animatrice","voix off","voice over",';
+  Lines[23] := '    "danse","danseur","danseuse","chant","chanteur","chanteuse",';
+  Lines[24] := '    "humour","stand up","podcast"';
+  Lines[25] := '  ],';
+  Lines[26] := '  "sources": {';
+  Lines[27] := '    "castprod": true,';
+  Lines[28] := '    "figurants_paca": true';
+  Lines[29] := '  },';
+  Lines[30] := '  "social_sources": {';
+  Lines[31] := '    "facebook_public": {';
+  Lines[32] := '      "enabled": true,';
+  Lines[33] := '      "urls": [';
+  Lines[34] := '        "https://www.facebook.com/groups/castingmarseille/",';
+  Lines[35] := '        "https://www.facebook.com/groups/castingfigurantspaca/",';
+  Lines[36] := '        "https://www.facebook.com/groups/figurantssud/"';
+  Lines[37] := '      ]';
+  Lines[38] := '    },';
+  Lines[39] := '    "instagram_public": {';
+  Lines[40] := '      "enabled": true,';
+  Lines[41] := '      "hashtags": [';
+  Lines[42] := '        "castingpaca",';
+  Lines[43] := '        "castingmarseille",';
+  Lines[44] := '        "figurantpaca",';
+  Lines[45] := '        "modelepaca",';
+  Lines[46] := '        "mannequinpaca",';
+  Lines[47] := '        "seniormodele"';
+  Lines[48] := '      ]';
+  Lines[49] := '    }';
+  Lines[50] := '  },';
+  Lines[51] := '  "sleep_between_requests_seconds": 0.7';
+  Lines[52] := '}';
   SaveStringsToUTF8File(FilePath, Lines, False);
 end;
 
