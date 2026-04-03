@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name casting-paca.example.com;
+
+    root /var/lib/veillecasting/public;
+    index index.html;
+
+    access_log /var/log/nginx/casting-paca.access.log;
+    error_log /var/log/nginx/casting-paca.error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

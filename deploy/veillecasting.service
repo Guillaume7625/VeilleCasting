@@ -1,0 +1,14 @@
+[Unit]
+Description=VeilleCasting worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/veillecasting
+Environment=VEILLECASTING_DATA_DIR=/var/lib/veillecasting
+EnvironmentFile=-/etc/veillecasting.env
+ExecStart=/opt/veillecasting/venv/bin/python /opt/veillecasting/veille_casting_app.py --once
+User=veillecasting
+Group=veillecasting
+

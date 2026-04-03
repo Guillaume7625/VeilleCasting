@@ -1,0 +1,11 @@
+[Unit]
+Description=Run VeilleCasting twice per day
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+OnCalendar=*-*-* 16:00:00
+Persistent=true
+Unit=veillecasting.service
+
+[Install]
+WantedBy=timers.target

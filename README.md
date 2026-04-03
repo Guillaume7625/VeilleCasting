@@ -7,20 +7,7 @@ Les sources hors PACA sont ignorées.
 La phase 2 ajoute des collecteurs sociaux publics PACA (Facebook / Instagram) uniquement quand leurs pages publiques sont lisibles sans contournement de connexion. Si une source est verrouillée, elle est marquée `unsupported` et la veille continue.
 L'IA OpenAI est optionnelle: elle sert à mieux qualifier les annonces candidates et à enrichir la synthèse, sans remplacer les filtres PACA et le contrôle du contact exploitable.
 Les alertes sont envoyées via l'API e-mail [Resend](https://resend.com/emails) deux fois par jour (9 h et 16 h).
-
-## Télécharger
-
-[**Télécharger VeilleCasting_Setup.exe**](https://github.com/Guillaume7625/VeilleCasting/releases/latest/download/VeilleCasting_Setup.exe)
-
-## Installer
-
-1. Téléchargez le fichier ci-dessus.
-2. Double-cliquez dessus. Si Windows affiche « Windows a protégé votre ordinateur », cliquez **Informations complémentaires** puis **Exécuter quand même**.
-3. Suivez l'assistant. Il vous demandera :
-   - Votre **clé API Resend**.
-   - Votre **adresse d'expédition Resend**. Pour ce projet, l'adresse validée utilisée par défaut est `piccinno@hotmail.com`.
-   - Si vous voulez l'IA, votre **clé API OpenAI** et éventuellement le **modèle OpenAI** à utiliser.
-4. Cliquez « Installer », puis « Terminer ».
+La version de production est prévue pour un **VPS OVH Linux** avec un **sous-domaine dédié** qui sert une page de statut statique mise à jour automatiquement.
 
 ## Préparer Resend
 
@@ -35,31 +22,41 @@ Les alertes sont envoyées via l'API e-mail [Resend](https://resend.com/emails) 
 3. Le modèle par défaut recommandé est `gpt-5.1-mini`, mais vous pouvez le changer dans la configuration.
 4. Si vous préférez ne rien saisir dans l'installateur, vous pouvez aussi définir `OPENAI_API_KEY` et `OPENAI_MODEL` dans l'environnement Windows du compte qui exécute la tâche.
 
+## Déploiement VPS OVH
+
+1. Réservez un sous-domaine, par exemple `casting-paca.votredomaine.tld`.
+2. Vérifiez que ce sous-domaine ne sert déjà aucun autre site sur le VPS.
+3. Utilisez les fichiers de déploiement dans `deploy/`:
+   - `deploy/veillecasting.service`
+   - `deploy/veillecasting.timer`
+   - `deploy/nginx-casting-paca.conf.example`
+   - `deploy/env.example`
+   - `deploy/audit_vps.sh`
+4. Créez un environnement Python, installez `requirements.txt`, puis lancez le worker via systemd.
+5. Servez `VEILLECASTING_DATA_DIR/public` derrière Nginx sur le sous-domaine.
+
 ## Mode quasi automatique
 
 Si vous voulez vraiment minimiser la saisie:
 
 1. Laissez le projet utiliser `piccinno@hotmail.com` comme expéditeur par défaut.
-2. Renseignez uniquement la clé Resend une fois dans l'installateur, ou fournissez `RESEND_API_KEY` dans l'environnement.
-3. Si vous voulez l'IA, fournissez `OPENAI_API_KEY` dans l'environnement ou collez-la une seule fois dans l'installateur.
-4. Le reste est automatique: tâches planifiées, heures d'envoi, filtrage PACA, newsletter et envoi Resend.
+2. Renseignez uniquement la clé Resend une fois, ou fournissez `RESEND_API_KEY` dans l'environnement.
+3. Si vous voulez l'IA, fournissez `OPENAI_API_KEY` dans l'environnement ou collez-la une seule fois dans la configuration.
+4. Le reste est automatique: planification Linux, heures d'envoi, filtrage PACA, newsletter, envoi Resend, et page de statut statique du sous-domaine.
 
 ## Vérifier
 
-1. Ouvrez le **Planificateur de tâches** (cherchez « Planificateur » dans le menu Démarrer).
-2. Repérez la tâche **VeilleCasting_2xJour** avec deux déclencheurs (9 h 00 et 16 h 00).
-3. Cliquez droit → **Exécuter** pour tester immédiatement.
-4. Consultez le journal : appuyez sur `Win + R`, tapez `%APPDATA%\VeilleCasting\veille.log`, Entrée.
+1. Sur Linux, consultez le journal système du service `veillecasting`.
+2. Ouvrez `status.json` ou `index.html` dans `VEILLECASTING_DATA_DIR/public`.
+3. Vérifiez le sous-domaine via le reverse proxy Nginx.
 
 ## Sécurité
 
-La clé API Resend est stockée dans `%APPDATA%\VeilleCasting\config.json`.
-Toute personne ayant accès à votre session Windows peut la lire.
+La clé API Resend est stockée dans le répertoire de données de l'application, ou dans les variables d'environnement du service.
 Révoquez la clé à tout moment depuis le tableau de bord Resend.
 
-Installez l'application depuis le compte Windows qui l'utilisera au quotidien.
+Sur un VPS partagé par plusieurs services, utilisez un utilisateur système dédié et un répertoire de données isolé.
 
 ## Désinstaller
 
-Paramètres Windows → Applications → **Veille Casting** → Désinstaller.
-La tâche planifiée est automatiquement supprimée.
+Supprimez le service systemd, le timer, le répertoire de données et la configuration Nginx du sous-domaine.

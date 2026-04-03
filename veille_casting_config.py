@@ -6,11 +6,22 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import unicodedata
 from datetime import datetime
 from pathlib import Path
 
-APP_DIR = Path(os.environ.get("APPDATA", ".")) / "VeilleCasting"
+def _default_app_dir() -> Path:
+    appdata = os.environ.get("APPDATA", "").strip()
+    if appdata:
+        return Path(appdata) / "VeilleCasting"
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    if xdg_config_home:
+        return Path(xdg_config_home) / "VeilleCasting"
+    return Path.home() / ".config" / "VeilleCasting"
+
+
+APP_DIR = Path(os.environ.get("VEILLECASTING_DATA_DIR", "")) if os.environ.get("VEILLECASTING_DATA_DIR", "").strip() else _default_app_dir()
 CONFIG_FILE = APP_DIR / "config.json"
 LOG_FILE = APP_DIR / "veille.log"
 SEEN_FILE = APP_DIR / "seen_hashes.json"
@@ -175,6 +186,8 @@ def load_config() -> dict:
         cfg = DEFAULT_CONFIG.copy()
     if "social_sources" not in cfg:
         cfg["social_sources"] = DEFAULT_CONFIG["social_sources"]
+    if "data_dir" not in cfg or not str(cfg.get("data_dir", "")).strip():
+        cfg["data_dir"] = str(APP_DIR)
     if "openai_api_key" not in cfg:
         cfg["openai_api_key"] = ""
     if "openai_model" not in cfg or not str(cfg.get("openai_model", "")).strip():
@@ -203,6 +216,10 @@ def load_config() -> dict:
     cfg["_category_norm"] = [norm(x) for x in cfg.get("category_keywords", [])]
     cfg["_zones_norm"] = [norm(x) for x in cfg.get("zones_ok", [])]
     return cfg
+
+
+def detect_platform() -> str:
+    return platform.system().lower()
 
 
 def config_is_filled(cfg: dict) -> bool:

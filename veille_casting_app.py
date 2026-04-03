@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
+import sys
+from datetime import datetime
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -12,6 +15,7 @@ from urllib3.util.retry import Retry
 
 from veille_casting_config import APP_DIR, AUDIT_FILE, DEFAULT_CONFIG, config_is_filled, load_config, log, save_json
 from veille_casting_newsletter import send_email
+from veille_casting_status import write_status
 from veille_casting_sources import (
     collect_social_public,
     filter_new,
@@ -36,14 +40,29 @@ HEADERS = {
 
 def cmd_init() -> None:
     APP_DIR.mkdir(parents=True, exist_ok=True)
+    (APP_DIR / "public").mkdir(parents=True, exist_ok=True)
     if not (APP_DIR / "config.json").exists():
         save_json(APP_DIR / "config.json", DEFAULT_CONFIG)
         log("Config par defaut creee.")
-    try:
-        subprocess.Popen(["notepad.exe", str(APP_DIR / "config.json")])
-    except Exception:
-        log(f"Impossible d'ouvrir Notepad. Editez manuellement : {APP_DIR / 'config.json'}")
-    log(f"--init termine. Config: {APP_DIR / 'config.json'}")
+    config_path = APP_DIR / "config.json"
+    editor = os.environ.get("EDITOR", "").strip()
+    opened = False
+    if editor:
+        try:
+            subprocess.Popen([editor, str(config_path)])
+            opened = True
+        except Exception:
+            opened = False
+    if not opened:
+        if sys.platform.startswith("linux"):
+            try:
+                subprocess.Popen(["xdg-open", str(config_path)])
+                opened = True
+            except Exception:
+                opened = False
+    if not opened:
+        log(f"Editez manuellement : {config_path}")
+    log(f"--init termine. Config: {config_path}")
 
 
 def run_once() -> None:
@@ -84,6 +103,7 @@ def run_once() -> None:
     )
     if not relevant:
         log("No relevant casting today")
+        publish_status(cfg, all_annonces, relevant, new_count=0, mail_status="No relevant casting today")
         if send_email(SESSION, cfg, relevant, log):
             log("Newsletter vide envoyee via Resend.")
         return
@@ -93,11 +113,41 @@ def run_once() -> None:
     if new:
         if send_email(SESSION, cfg, new, log):
             mark_seen(new)
+            mail_status = "Mail envoye"
         else:
             log("Email non envoye, annonces NON marquees comme vues.")
+            mail_status = "Echec envoi mail"
     else:
         log("Aucune nouvelle annonce.")
+        mail_status = "Aucun nouveau mail"
+    publish_status(cfg, all_annonces, relevant, new_count=len(new), mail_status=mail_status)
     log("=== Fin de la veille ===")
+
+
+def publish_status(cfg: dict, all_annonces: list, relevant: list, *, new_count: int, mail_status: str) -> None:
+    public_dir = APP_DIR / "public"
+    status = {
+        "title": "CastINT PACA",
+        "last_run": datetime.now().isoformat(timespec="seconds"),
+        "mail_status": mail_status,
+        "source_count": len(all_annonces),
+        "relevant_count": len(relevant),
+        "new_count": new_count,
+        "confirmed_count": sum(1 for item in relevant if item["classification"] == "CASTING_CONFIRMED"),
+        "probable_count": sum(1 for item in relevant if item["classification"] == "CASTING_PROBABLE"),
+        "openai_enabled": bool(cfg.get("openai_api_key")),
+        "latest_items": [
+            {
+                "title": item.get("newsletter_title") or item.get("title", ""),
+                "role_label": item.get("role_label", ""),
+                "location": item.get("location", ""),
+                "source": item.get("source", ""),
+                "contact_method": item.get("contact_method", ""),
+            }
+            for item in relevant[:6]
+        ],
+    }
+    write_status(public_dir, status)
 
 
 def main() -> None:

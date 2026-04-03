@@ -22,6 +22,7 @@ MODULE_NAMES = [
     "veille_casting_config",
     "veille_casting_audit",
     "veille_casting_openai",
+    "veille_casting_status",
 ]
 
 
@@ -59,8 +60,9 @@ def load_modules(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     src = importlib.import_module("veille_casting_sources")
     news = importlib.import_module("veille_casting_newsletter")
     cfg = importlib.import_module("veille_casting_config")
+    status = importlib.import_module("veille_casting_status")
     importlib.import_module("veille_casting_audit")
-    return app, src, news, cfg
+    return app, src, news, cfg, status
 
 
 class DummyResp:
@@ -92,7 +94,7 @@ class DummySession:
 
 
 def test_paca_casting_is_classified_and_kept(monkeypatch, tmp_path):
-    _, src, news, cfg = load_modules(monkeypatch, tmp_path)
+    _, src, news, cfg, _ = load_modules(monkeypatch, tmp_path)
 
     html = "<html><body><a href='mailto:cast@example.com'>mail</a><div>casting paca marseille H/F 45-60 ans</div></body></html>"
     session = DummySession(html)
@@ -126,7 +128,7 @@ def test_paca_casting_is_classified_and_kept(monkeypatch, tmp_path):
 
 
 def test_candidate_without_contact_is_rejected(monkeypatch, tmp_path):
-    _, src, news, cfg = load_modules(monkeypatch, tmp_path)
+    _, src, news, cfg, _ = load_modules(monkeypatch, tmp_path)
 
     session = DummySession("<html><body>casting paca marseille</body></html>")
     monkeypatch.setattr(src, "extract_contact_value", lambda session, headers, url: None)
@@ -158,7 +160,7 @@ def test_candidate_without_contact_is_rejected(monkeypatch, tmp_path):
 
 
 def test_social_public_login_wall_is_unsupported(monkeypatch, tmp_path):
-    _, src, news, cfg = load_modules(monkeypatch, tmp_path)
+    _, src, news, cfg, _ = load_modules(monkeypatch, tmp_path)
 
     class BlockedSession:
         def mount(self, *args, **kwargs):
@@ -190,7 +192,7 @@ def test_social_public_login_wall_is_unsupported(monkeypatch, tmp_path):
 
 
 def test_openai_refinement_enriches_newsletter(monkeypatch, tmp_path):
-    _, src, news, cfg = load_modules(monkeypatch, tmp_path)
+    _, src, news, cfg, _ = load_modules(monkeypatch, tmp_path)
 
     session = DummySession("<html><body><a href='mailto:cast@example.com'>mail</a><div>casting paca marseille H/F 45-60 ans</div></body></html>")
     monkeypatch.setattr(src, "extract_contact_value", lambda session, headers, url: ("Email", "cast@example.com"))
@@ -246,7 +248,7 @@ def test_openai_refinement_enriches_newsletter(monkeypatch, tmp_path):
 
 
 def test_env_fallback_populates_api_keys(monkeypatch, tmp_path):
-    _, _, _, cfg = load_modules(monkeypatch, tmp_path)
+    _, _, _, cfg, _ = load_modules(monkeypatch, tmp_path)
 
     monkeypatch.setenv("RESEND_API_KEY", "re_env_key")
     monkeypatch.setenv("RESEND_SENDER_EMAIL", "piccinno@hotmail.com")
@@ -260,3 +262,38 @@ def test_env_fallback_populates_api_keys(monkeypatch, tmp_path):
     assert loaded["openai_api_key"] == "sk-openai-env"
     assert loaded["openai_model"] == "gpt-5.1-mini"
     assert cfg.config_is_filled(loaded) is True
+
+
+def test_status_page_is_written(monkeypatch, tmp_path):
+    _, _, _, cfg, status = load_modules(monkeypatch, tmp_path)
+
+    public_dir = tmp_path / "VeilleCasting" / "public"
+    status.write_status(
+        public_dir,
+        {
+            "title": "CastINT PACA",
+            "last_run": "2026-04-03T09:00:00",
+            "mail_status": "Mail envoye",
+            "source_count": 5,
+            "relevant_count": 2,
+            "new_count": 1,
+            "confirmed_count": 1,
+            "probable_count": 1,
+            "openai_enabled": True,
+            "latest_items": [
+                {
+                    "title": "Campagne luxe PACA",
+                    "role_label": "Homme 40-60 ans",
+                    "location": "Marseille",
+                    "source": "CastProd",
+                    "contact_method": "Email",
+                }
+            ],
+        },
+    )
+
+    assert (public_dir / "status.json").exists()
+    assert (public_dir / "index.html").exists()
+    html = (public_dir / "index.html").read_text(encoding="utf-8")
+    assert "CastINT PACA" in html
+    assert "Homme 40-60 ans" in html
