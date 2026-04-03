@@ -251,14 +251,14 @@ def test_env_fallback_populates_api_keys(monkeypatch, tmp_path):
     _, _, _, cfg, _ = load_modules(monkeypatch, tmp_path)
 
     monkeypatch.setenv("RESEND_API_KEY", "re_env_key")
-    monkeypatch.setenv("RESEND_SENDER_EMAIL", "piccinno@hotmail.com")
+    monkeypatch.setenv("RESEND_SENDER_EMAIL", "test@mondomaine.fr")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-env")
     monkeypatch.setenv("OPENAI_MODEL", "gpt-5.1-mini")
 
     loaded = cfg.load_config()
 
     assert loaded["resend_api_key"] == "re_env_key"
-    assert loaded["sender_email"] == "piccinno@hotmail.com"
+    assert loaded["sender_email"] == "test@mondomaine.fr"  # from RESEND_SENDER_EMAIL env
     assert loaded["openai_api_key"] == "sk-openai-env"
     assert loaded["openai_model"] == "gpt-5.1-mini"
     assert cfg.config_is_filled(loaded) is True

@@ -78,17 +78,27 @@ def run_once() -> None:
         log(f"IA OpenAI activee avec le modele {cfg.get('openai_model', 'gpt-5.1-mini')}.")
 
     all_annonces = []
+    source_warnings = []
     sources = cfg.get("sources", {})
     if sources.get("castprod", True):
-        all_annonces.extend(scrape_castprod(SESSION, HEADERS, cfg, log))
+        castprod_items = scrape_castprod(SESSION, HEADERS, cfg, log)
+        if not castprod_items:
+            source_warnings.append("CastProd: 0 annonces (selecteurs CSS peut-etre casses)")
+        all_annonces.extend(castprod_items)
     if sources.get("figurants_paca", True):
-        all_annonces.extend(scrape_figurants(SESSION, HEADERS, cfg, "paca", log))
+        figurants_items = scrape_figurants(SESSION, HEADERS, cfg, "paca", log)
+        if not figurants_items:
+            source_warnings.append("Figurants PACA: 0 annonces (selecteurs CSS peut-etre casses)")
+        all_annonces.extend(figurants_items)
 
     social_items = collect_social_public(SESSION, HEADERS, cfg, log)
     if social_items:
         all_annonces.extend(social_items)
         log(f"Collecte sociale publique: {len(social_items)} item(s) brut(s).")
 
+    if source_warnings:
+        for warning in source_warnings:
+            log(f"ALERTE SOURCE: {warning}")
     log(f"Total brut: {len(all_annonces)} annonce(s).")
     relevant = prepare_newsletter_items(all_annonces, cfg, SESSION, HEADERS, AUDIT_FILE, log)
     confirmed = sum(1 for item in relevant if item["classification"] == "CASTING_CONFIRMED")
@@ -104,8 +114,6 @@ def run_once() -> None:
     if not relevant:
         log("No relevant casting today")
         publish_status(cfg, all_annonces, relevant, new_count=0, mail_status="No relevant casting today")
-        if send_email(SESSION, cfg, relevant, log):
-            log("Newsletter vide envoyee via Resend.")
         return
 
     new = filter_new(relevant)

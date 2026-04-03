@@ -541,6 +541,21 @@ def _classify_candidate(
             reject_reason="noise_or_general_news",
         )
         return None
+    if any(kw in text for kw in cfg.get("_exclude_norm", [])):
+        audit_decision(
+            audit_file,
+            keep_or_reject="reject",
+            source_type=source_meta.get("type", "source inconnue"),
+            source_name=source,
+            source_url=link,
+            collected_at=collected_at,
+            raw_excerpt=raw_excerpt,
+            paca_signal_detected=False,
+            contact_detected=False,
+            relevance_score=0,
+            reject_reason="excluded_keyword",
+        )
+        return None
     if not is_casting_related(text, cfg):
         audit_decision(
             audit_file,

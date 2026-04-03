@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+dist/
+build/
+*.spec
+*.egg-info/
+.env
+config.json
+veille.log
+seen_hashes.json
+audit.jsonl

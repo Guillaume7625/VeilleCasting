@@ -66,9 +66,9 @@ begin
 
   SenderPage := CreateInputQueryPage(ApiKeyPage.ID,
     'Adresse d expediteur', 'Entrez l adresse d expediteur Resend',
-    'Exemple : piccinno@hotmail.com');
+    'Exemple : votre-email@example.com');
   SenderPage.Add('Adresse expediteur :', False);
-  SenderPage.Values[0] := 'piccinno@hotmail.com';
+  SenderPage.Values[0] := 'votre-email@example.com';
 
   OpenAIPage := CreateInputQueryPage(SenderPage.ID,
     'IA OpenAI (optionnel)', 'Amelioration IA des annonces',
@@ -142,7 +142,7 @@ begin
   Lines[0]  := '{';
   Lines[1]  := '  "resend_api_key": "' + JsonEscape(ApiKeyPage.Values[0]) + '",';
   Lines[2]  := '  "sender_email": "' + JsonEscape(CleanSender) + '",';
-  Lines[3]  := '  "recipient_email": "piccinno@hotmail.com",';
+  Lines[3]  := '  "recipient_email": "votre-email@example.com",';
   Lines[4]  := '  "openai_api_key": "' + JsonEscape(CleanOpenAIKey) + '",';
   Lines[5]  := '  "openai_model": "' + JsonEscape(CleanOpenAIModel) + '",';
   Lines[6]  := '  "zones_ok": [';

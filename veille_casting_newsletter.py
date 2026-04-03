@@ -23,7 +23,7 @@ def send_email(session, cfg: dict, annonces: list, log) -> bool:
         "Authorization": f"Bearer {cfg['resend_api_key']}",
         "Content-Type": "application/json",
         "Idempotency-Key": hashlib.sha256(
-            f"{subject}|{cfg['sender_email']}|{cfg['recipient_email']}|{len(annonces)}".encode()
+            f"{subject}|{cfg['sender_email']}|{cfg['recipient_email']}|{datetime.now().strftime('%Y-%m-%dT%H')}|{','.join(sorted(a.get('_hash', a.get('title', '')) for a in annonces))}".encode()
         ).hexdigest()[:32],
     }
     try:

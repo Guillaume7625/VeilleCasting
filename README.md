@@ -13,7 +13,7 @@ La version de production est prévue pour un **VPS OVH Linux** avec un **sous-do
 
 1. Créez une clé API : <https://resend.com/api-keys>
 2. Vérifiez l'adresse ou le domaine d'expédition dans votre compte Resend.
-3. Utilisez `piccinno@hotmail.com` ou une autre adresse `from` autorisée par Resend dans la configuration.
+3. Utilisez une adresse `from` autorisée par Resend dans la configuration.
 
 ## Préparer OpenAI
 
@@ -39,7 +39,7 @@ La version de production est prévue pour un **VPS OVH Linux** avec un **sous-do
 
 Si vous voulez vraiment minimiser la saisie:
 
-1. Laissez le projet utiliser `piccinno@hotmail.com` comme expéditeur par défaut.
+1. Configurez votre adresse d'expéditeur Resend dans `config.json` ou via `RESEND_SENDER_EMAIL`.
 2. Renseignez uniquement la clé Resend une fois, ou fournissez `RESEND_API_KEY` dans l'environnement.
 3. Si vous voulez l'IA, fournissez `OPENAI_API_KEY` dans l'environnement ou collez-la une seule fois dans la configuration.
 4. Le reste est automatique: planification Linux, heures d'envoi, filtrage PACA, newsletter, envoi Resend, et page de statut statique du sous-domaine.

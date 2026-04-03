@@ -26,13 +26,13 @@ CONFIG_FILE = APP_DIR / "config.json"
 LOG_FILE = APP_DIR / "veille.log"
 SEEN_FILE = APP_DIR / "seen_hashes.json"
 AUDIT_FILE = APP_DIR / "audit.jsonl"
-DEFAULT_SENDER_EMAIL = "piccinno@hotmail.com"
+DEFAULT_SENDER_EMAIL = "noreply@example.com"
 DEFAULT_OPENAI_MODEL = "gpt-5.1-mini"
 
 DEFAULT_CONFIG = {
     "resend_api_key": "VOTRE_CLE_API_RESEND",
     "sender_email": DEFAULT_SENDER_EMAIL,
-    "recipient_email": "piccinno@hotmail.com",
+    "recipient_email": "votre-email@example.com",
     "openai_api_key": "",
     "openai_model": DEFAULT_OPENAI_MODEL,
     "zones_ok": [
@@ -124,7 +124,7 @@ DEFAULT_CONFIG = {
     },
     "social_sources": {
         "facebook_public": {
-            "enabled": True,
+            "enabled": False,
             "urls": [
                 "https://www.facebook.com/groups/castingmarseille/",
                 "https://www.facebook.com/groups/castingfigurantspaca/",
@@ -132,7 +132,7 @@ DEFAULT_CONFIG = {
             ],
         },
         "instagram_public": {
-            "enabled": True,
+            "enabled": False,
             "hashtags": [
                 "castingpaca",
                 "castingmarseille",
@@ -203,12 +203,12 @@ def load_config() -> dict:
         if env_resend_api_key:
             cfg["resend_api_key"] = env_resend_api_key
     sender_email = str(cfg.get("sender_email", "")).strip()
-    if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email:
+    if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email or "example.com" in sender_email:
         env_sender_email = os.environ.get("RESEND_SENDER_EMAIL", "").strip()
         if env_sender_email:
             cfg["sender_email"] = env_sender_email
     sender_email = str(cfg.get("sender_email", "")).strip()
-    if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email:
+    if not sender_email or "votre-domaine.fr" in sender_email or "gmail.com" in sender_email or "googlemail.com" in sender_email or "example.com" in sender_email:
         cfg["sender_email"] = DEFAULT_SENDER_EMAIL
     if "sender_password" in cfg and "resend_api_key" not in cfg:
         cfg["_legacy_gmail_config"] = True
