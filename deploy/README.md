@@ -31,11 +31,13 @@ Exécutez `deploy/audit_vps.sh` sur le VPS et vérifiez:
    ```bash
    sudo cp deploy/veillecasting.service /etc/systemd/system/
    sudo cp deploy/veillecasting.timer /etc/systemd/system/
+   sudo cp deploy/veillecasting-web.service /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable --now veillecasting.timer
+   sudo systemctl enable --now veillecasting-web.service
    ```
 
-6. Configurez Nginx avec `deploy/nginx-casting-paca.conf.example` en pointant vers:
+6. Configurez votre reverse proxy avec `deploy/nginx-casting-paca.conf.example` ou une route Caddy équivalente, en pointant vers:
 
    ```text
    /var/lib/veillecasting/public

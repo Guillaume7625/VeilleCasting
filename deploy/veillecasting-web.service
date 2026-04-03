@@ -1,0 +1,17 @@
+[Unit]
+Description=VeilleCasting status web server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=veillecasting
+Group=veillecasting
+WorkingDirectory=/var/lib/veillecasting/public
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m http.server 8123 --bind 0.0.0.0 --directory /var/lib/veillecasting/public
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
